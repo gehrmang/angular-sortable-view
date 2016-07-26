@@ -1,6 +1,6 @@
 //
 // Copyright Kamil Pękala http://github.com/kamilkp
-// angular-sortable-view v0.0.15 2015/01/18
+// angular-sortable-view v0.0.13 2015/01/13
 //
 
 ;(function(window, angular){
@@ -15,6 +15,10 @@
 			return isGrid ? elem.x - pointer.x < 0 : elem.y - pointer.y < 0;
 		}
 		function getSortableElements(key){
+			if (!ROOTS_MAP[key]) {
+				ROOTS_MAP[key] = [];
+			}
+			
 			return ROOTS_MAP[key];
 		}
 		function removeSortableElements(key){
@@ -39,7 +43,14 @@
 				var $original;   // original element
 				var $target;     // last best candidate
 				var isGrid       = false;
+				var isDisabled   = false;
 				var onSort       = $parse($attrs.svOnSort);
+
+
+				// not sure if this is efficient?
+				$scope.$watch($parse($attrs.svDisabled), function(newVal, oldVal) {
+					isDisabled = newVal;
+				});
 
 				// ----- hack due to https://github.com/angular/angular.js/issues/8044
 				$attrs.svOnStart = $attrs.$$element[0].attributes['sv-on-start'];
@@ -56,6 +67,9 @@
 					return sortingInProgress;
 				};
 
+				this.sortingDisabled = function() {
+					return isDisabled;
+				};
 				if($attrs.svGrid){ // sv-grid determined explicite
 					isGrid = $attrs.svGrid === "true" ? true : $attrs.svGrid === "false" ? false : null;
 					if(isGrid === null)
@@ -391,6 +405,10 @@
 					touchFix(e);
 
 					if($controllers[1].sortingInProgress()) return;
+
+					// do nothing if sorting is disabled
+					if ($controllers[1].sortingDisabled()) return;
+
 					if(e.button != 0 && e.type === 'mousedown') return;
 
 					moveExecuted = false;
@@ -458,10 +476,10 @@
 						html.off('mousemove touchmove', onMousemove);
 						html.off('mouseup touchend', mouseup);
 						html.removeClass('sv-sorting-in-progress');
-						if(moveExecuted){
+						if(moveExecuted)
 							$controllers[0].$drop($scope.$index, opts);
-						}
-						$element.removeClass('sv-visibility-hidden');
+						else
+							$element.removeClass('sv-visibility-hidden');
 					});
 
 					// onMousemove(e);
